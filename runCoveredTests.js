@@ -31,21 +31,33 @@ shell.mv('./../contracts/', './../originalContracts/');
 shell.mkdir('./../contracts/');
 // For each contract in originalContracts, get the instrumented version
 shell.ls('./../originalContracts/**/*.sol').forEach(file => {
-  if (file !== 'originalContracts/Migrations.sol') {
-    const canonicalContractPath = path.resolve(file);
 
+  const canonicalContractPath = path.resolve(file);
+  var contract = fs.readFileSync(canonicalContractPath).toString();
+ 
+  if ( file.match(/\/helpers\//g) === null ) {
     console.log('instrumenting ', canonicalContractPath);
-    const contract = fs.readFileSync(canonicalContractPath).toString();
     const instrumentedContractInfo = getInstrumentedVersion(contract, canonicalContractPath);
-    mkdirp.sync(path.dirname(canonicalContractPath.replace('originalContracts', 'contracts')));
-    fs.writeFileSync(canonicalContractPath.replace('originalContracts', 'contracts'), instrumentedContractInfo.contract);
+    contract = instrumentedContractInfo.contract
     coverage.addContract(instrumentedContractInfo, canonicalContractPath);
   }
-});
-shell.cp('./../originalContracts/Migrations.sol', './../contracts/Migrations.sol');
 
-shell.rm('./allFiredEvents'); // Delete previous results
-shell.exec('truffle test --network test');
+  mkdirp.sync(path.dirname(canonicalContractPath.replace('originalContracts', 'contracts')));
+  fs.writeFileSync(canonicalContractPath.replace('originalContracts', 'contracts'), contract);
+});
+
+if (fs.existsSync('./allFiredEvents')) {
+  shell.rm('./allFiredEvents'); // Delete previous results
+}
+
+if (shell.exec('truffle test --network test').code !== 0) {
+  console.log('Tests failed')
+  testrpcProcess.kill();
+  shell.rm('-rf', './../contracts');
+  shell.mv('./../originalContracts', './../contracts');
+  process.exit(1);
+}
+testrpcProcess.kill();
 
 const events = fs.readFileSync('./allFiredEvents').toString().split('\n');
 events.pop();
@@ -55,8 +67,13 @@ coverage.generate(events, './../originalContracts/');
 
 fs.writeFileSync('./coverage.json', JSON.stringify(coverage.coverage));
 
-shell.exec('./node_modules/istanbul/lib/cli.js report lcov');
-testrpcProcess.kill();
+if (shell.exec('./node_modules/istanbul/lib/cli.js report lcov') .code !== 0 ) {
+  console.log('Coverage failed')
+  shell.rm('-rf', './../contracts');
+  shell.mv('./../originalContracts', './../contracts');
+  process.exit(1);  
+}
+
 shell.rm('-rf', './../contracts');
 shell.mv('./../originalContracts', './../contracts');
 process.exit(0);
