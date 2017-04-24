@@ -1,8 +1,7 @@
 {
-  "extends": ["airbnb-base"],
+  "extends": ["standard"],
   "plugins": ["mocha"],
   "env":{
-    "meteor": true,
     "es6": true,
     "commonjs": true
   },
@@ -37,14 +36,17 @@
     "quotes": [2, "single"],
     "radix": ["error", "always"],
     "require-yield": [0],
-    "semi": [2, "always"],
+    "semi": [0, "always"],
     "no-unused-vars": 0,
     "import/extensions": [0],
+    "one-var": [0],
     "arrow-parens":[2, "as-needed"],
     "no-plusplus":[2, { "allowForLoopAfterthoughts": true }],
     "no-bitwise": [2],
     "import/no-unresolved": [2, { ignore: ['\.sol\.js$'] }],
     "class-methods-use-this": [2],
+    "node/no-deprecated-api": [0],
+    "handle-callback-err": [0],
 
     /* Plugins */
     "import/no-extraneous-dependencies": [0],
